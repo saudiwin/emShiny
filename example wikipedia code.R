@@ -10,7 +10,7 @@ require(ggplot2)
 
 anes <- read_dta('anes_timeseries_2016.dta')
 
-num_clust <- 2
+num_clust <- 3
 threshold <- .0001
 
 # We will use two variables: feeling thermometer for 'Christian Fundamentalists' V162095 and 
@@ -183,9 +183,6 @@ plot_data %>% distinct(new_dens,iter) %>%
 #   geom_line() + theme_minimal() + facet_wrap(~dens_type,scales='free') + 
 #   geom_hline(yintercept=threshold,linetype=2,colour='red')
 
-
-contour_data <- spread(plot_data,key=param,value=param_est)
-
 new_dens <- t(gen_data$new_dens %>% apply(1,function(x) x/sum(x)))
 # names(new_dens) <- paste0('Clust_',1:num_clust)
 # new_dens <- as_data_frame(new_dens)
@@ -239,7 +236,19 @@ sd(sqrt((out_res-check_data$z)^2))
 
 z_vals <- matrix(out_predict,nrow=length(0:100),ncol=length(0:100))
 
-plot_ly(check_data) %>% 
-  add_contour(z=~z_vals,contours=list(coloring='lines')) %>% 
-  add_markers(x=~Var1,y=~Var2,symbol=~clust_pred,color=~trump_feel,colors=colorRampPalette(brewer.pal(11,"Spectral"))(100)) %>% 
-  add_text(data=clust_labels,y=~mu1,x=~mu2,text=~label,textfont=list(color='white',size=18)) 
+# plot_ly(check_data) %>% 
+#   add_contour(z=~z_vals,contours=list(coloring='lines')) %>% 
+#   add_markers(x=~Var1,y=~Var2,symbol=~clust_pred,color=~trump_feel,colors=colorRampPalette(brewer.pal(11,"Spectral"))(100)) %>% 
+#   add_text(data=clust_labels,y=~mu1,x=~mu2,text=~label,textfont=list(color='white',size=18)) 
+
+# see if we can make ggplot work
+
+all_data_pred <- bind_cols(all_data,data_frame(out_predict))
+
+ggplot(all_data_pred,aes(y=Var1,x=Var2)) +  geom_raster(aes(fill=out_predict)) +
+  geom_contour(aes(z=out_predict)) + geom_point(data=check_data,aes(colour=trump_feel,shape=factor(clust_pred))) + 
+  scale_color_distiller(palette='Oranges',direction=1,guide = guide_colourbar(title='\u2764Trump\n',title.vjust=-5)) +
+  scale_shape_discrete(guide=guide_legend(title='Cluster\nMembership')) +
+  scale_fill_continuous(guide=guide_colorbar(title='Cluster\nDensity')) +
+  theme_minimal() +
+  theme(panel.grid = element_blank())
